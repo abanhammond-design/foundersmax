@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Governance Matrix</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f8f8f8;
+    --text: #1a1a1a;
+    --text-secondary: #555;
+    --text-muted: #999;
+    --border: #e0e0e0;
+    --central: #2d3142;
+    --shared: #b07d4f;
+    --autonomous: #2a9d8f;
+    --central-glow: rgba(45,49,66,0.15);
+    --shared-glow: rgba(176,125,79,0.15);
+    --auto-glow: rgba(42,157,143,0.15);
+    --test-info: #4361ee;
+    --test-exec: #d4940a;
+    --test-impact: #d63447;
+    --conn-default: rgba(0,0,0,0.055);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --text: #e2e8f0;
+      --text-secondary: #a0aec0;
+      --text-muted: #5a6577;
+      --border: #2d3748;
+      --central: #90b8f8;
+      --shared: #e0a870;
+      --autonomous: #5ec4b6;
+      --test-info: #6b8cff;
+      --test-exec: #f0b840;
+      --test-impact: #f06070;
+      --conn-default: rgba(255,255,255,0.045);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --text: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --text-muted: #5a6577;
+    --border: #2d3748;
+    --central: #90b8f8;
+    --shared: #e0a870;
+    --autonomous: #5ec4b6;
+    --test-info: #6b8cff;
+    --test-exec: #f0b840;
+    --test-impact: #f06070;
+    --conn-default: rgba(255,255,255,0.045);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 28px 16px 40px;
+  }
+
+  header { margin-bottom: 24px; }
+
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  header .subtitle {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  header .byline {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stage-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .stage-btn {
+    padding: 6px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .stage-btn:hover { border-color: var(--central); color: var(--central); }
+
+  .stage-btn.active {
+    background: var(--central);
+    color: #fff;
+    border-color: var(--central);
+  }
+
+  .right-controls { text-align: right; }
+
+  .sorting-test { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .test-btn {
+    padding: 5px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg);
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s;
+    color: var(--text-secondary);
+  }
+
+  .test-btn:hover { opacity: 0.85; }
+  .test-btn[data-test="info"].active { background: var(--test-info); color: #fff; border-color: var(--test-info); }
+  .test-btn[data-test="exec"].active { background: var(--test-exec); color: #fff; border-color: var(--test-exec); }
+  .test-btn[data-test="impact"].active { background: var(--test-impact); color: #fff; border-color: var(--test-impact); }
+
+  .hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    font-style: italic;
+  }
+
+  .canvas-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #network {
+    width: 100%;
+    min-width: 820px;
+    height: auto;
+    display: block;
+  }
+
+  .zone-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    fill: var(--text-muted);
+    text-anchor: middle;
+    opacity: 0.7;
+  }
+
+  .zone-bg { opacity: 0.35; }
+
+  .conn-line {
+    stroke-width: 1;
+    fill: none;
+    transition: stroke 0.35s, opacity 0.35s, stroke-width 0.3s;
+  }
+
+  .conn-line.highlight { stroke-width: 1.8; opacity: 0.65; }
+  .conn-line.dimmed { opacity: 0.015; }
+
+  .node-group { cursor: pointer; }
+
+  .node-ring {
+    fill-opacity: 0.06;
+    stroke-width: 2.2;
+    transition: fill-opacity 0.3s, stroke-opacity 0.3s, stroke-width 0.3s;
+  }
+
+  .node-group:hover .node-ring {
+    fill-opacity: 0.14;
+    stroke-width: 3;
+  }
+
+  .node-ring.dimmed { fill-opacity: 0.015; stroke-opacity: 0.12; }
+
+  .node-dot { transition: opacity 0.3s; }
+  .node-dot.dimmed { opacity: 0.1; }
+
+  .node-label {
+    font-size: 10.5px;
+    font-weight: 500;
+    fill: var(--text);
+    text-anchor: middle;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .node-label.dimmed { opacity: 0.15; }
+
+  .detail-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    display: none;
+    animation: fadeUp 0.25s ease;
+  }
+
+  .detail-panel.visible { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .detail-panel h3 { font-size: 0.95rem; margin-bottom: 6px; }
+
+  .detail-panel .rationale {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    line-height: 1.55;
+  }
+
+  .detail-panel .meta { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .pill {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .pill-info { background: rgba(67,97,238,0.1); color: var(--test-info); }
+  .pill-exec { background: rgba(212,148,10,0.1); color: var(--test-exec); }
+  .pill-impact { background: rgba(214,52,71,0.1); color: var(--test-impact); }
+  .pill-stage { background: var(--bg); border: 1px solid var(--border); color: var(--text-secondary); }
+
+  .migration-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 0;
+    margin-bottom: 8px;
+  }
+
+  .migration-bar .label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .migration-bar .arrow-line {
+    flex: 1;
+    max-width: 300px;
+    height: 1.5px;
+    background: linear-gradient(to right, var(--central), var(--autonomous));
+  }
+
+  .migration-bar .arrow-head {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid var(--autonomous);
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.73rem;
+    color: var(--text-secondary);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid;
+  }
+
+  .legend-line {
+    width: 18px; height: 2.5px;
+    border-radius: 1px;
+  }
+
+  .principle {
+    text-align: center;
+    padding: 8px 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .principle strong { color: var(--text); }
+
+  footer {
+    text-align: center;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 700px) {
+    .controls { flex-direction: column; align-items: flex-start; }
+    .right-controls { text-align: left; }
+    .sorting-test { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Studio vs. Portfolio Governance Matrix</h1>
+    <p class="subtitle">How decision rights distribute across a venture studio and migrate as ventures mature.</p>
+    <p class="byline">Aba N. Hammond</p>
+  </header>
+
+  <div class="controls">
+    <div class="stage-selector">
+      <button class="stage-btn active" data-stage="early">Early Stage (2 ventures)</button>
+      <button class="stage-btn" data-stage="growth">Growth (3-4)</button>
+      <button class="stage-btn" data-stage="scale">At Scale (5+)</button>
+    </div>
+    <div class="right-controls">
+      <div class="hint">Click any node for details. Hover to trace connections.</div>
+      <div class="sorting-test">
+        <button class="test-btn" data-test="info">Best Information</button>
+        <button class="test-btn" data-test="exec">Carries Execution</button>
+        <button class="test-btn" data-test="impact">Affected if it Fails</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <svg id="network" viewBox="0 0 1100 620"></svg>
+  </div>
+
+  <div class="detail-panel" id="detailPanel">
+    <h3 id="detailTitle"></h3>
+    <p class="rationale" id="detailRationale"></p>
+    <div class="meta" id="detailMeta"></div>
+  </div>
+
+  <div class="migration-bar">
+    <span class="label">Centralized</span>
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+    <span class="label">Autonomous</span>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="border-color:var(--central);background:rgba(45,49,66,0.08)"></div> Studio-Centralized</div>
+    <div class="legend-item"><div class="legend-dot" style="border-color:var(--shared);background:rgba(176,125,79,0.08)"></div> Shared / Platform</div>
+    <div class="legend-item"><div class="legend-dot" style="border-color:var(--autonomous);background:rgba(42,157,143,0.08)"></div> Venture-Autonomous</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--test-info)"></div> Information</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--test-exec)"></div> Execution</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--test-impact)"></div> Impact</div>
+  </div>
+
+  <div class="principle">
+    <strong>Governance loosens as earned, not as assumed.</strong><br>
+    The stage-gate process determines when decision-making autonomy is extended.
+  </div>
+
+  <footer>Venture Studio Scale &amp; Execution Framework &middot; Aba N. Hammond</footer>
+</div>
+
+<script>
+const items = [
+  { id:'entity',    name:'Entity Structure',       tests:['info','impact'],        tier:{early:'central',growth:'central',scale:'central'}, rationale:'Legal structure affects every venture. Getting it wrong creates liability across the portfolio.' },
+  { id:'brand',     name:'Brand Architecture',      tests:['impact'],               tier:{early:'central',growth:'central',scale:'shared'},  rationale:'At early stage, the studio brand carries the ventures. At scale, ventures with market traction may earn brand autonomy.' },
+  { id:'resource',  name:'Resource Allocation',     tests:['info','impact'],        tier:{early:'central',growth:'central',scale:'central'}, rationale:'Only the studio has the cross-portfolio view needed to allocate resources fairly. This stays centralized at every stage.' },
+  { id:'investor',  name:'Investor Relations',      tests:['info','impact'],        tier:{early:'central',growth:'central',scale:'shared'},  rationale:'Early investors engage with the studio thesis. At scale, mature ventures with traction participate in investor conversations.' },
+  { id:'legal',     name:'Legal & Compliance',      tests:['impact'],               tier:{early:'central',growth:'central',scale:'central'}, rationale:'Compliance failures at one venture create risk for the entire studio. This stays centralized.' },
+  { id:'norms',     name:'Operating Norms',         tests:['impact','exec'],        tier:{early:'central',growth:'central',scale:'shared'},  rationale:'How the studio communicates, resolves disagreement, and holds accountability. Sets the tone every venture inherits.' },
+  { id:'talent',    name:'Talent Acquisition',      tests:['info','exec'],          tier:{early:'shared',growth:'shared',scale:'auto'},      rationale:'Ventures know their talent needs best. As they mature, they hire independently within studio guidelines.' },
+  { id:'vendor',    name:'Vendor Selection',        tests:['info','exec'],          tier:{early:'shared',growth:'shared',scale:'auto'},      rationale:'Shared vendor relationships create studio value early. Mature ventures may need specialized vendors.' },
+  { id:'financial', name:'Financial Reporting',      tests:['info','impact'],        tier:{early:'shared',growth:'shared',scale:'shared'},    rationale:'Consistent reporting across the portfolio serves investors and studio leadership. The standard stays shared.' },
+  { id:'stagegate', name:'Stage-Gate Criteria',      tests:['info','impact'],        tier:{early:'shared',growth:'shared',scale:'shared'},    rationale:'Criteria are co-designed with venture input but applied consistently across the portfolio.' },
+  { id:'cadence',   name:'Operating Cadence',        tests:['exec','impact'],        tier:{early:'shared',growth:'shared',scale:'shared'},    rationale:'The cadence serves the whole portfolio. Ventures shape its content; the studio maintains its rhythm.' },
+  { id:'knowledge', name:'Institutional Memory',     tests:['info','impact'],        tier:{early:'shared',growth:'shared',scale:'shared'},    rationale:'What one venture learns should inform the others. The studio maintains the system; ventures contribute learnings.' },
+  { id:'execution', name:'Daily Execution',          tests:['info','exec'],          tier:{early:'auto',growth:'auto',scale:'auto'},          rationale:'The venture leader is closest to the work. Speed at this level matters more than coordination.' },
+  { id:'customer',  name:'Customer Development',     tests:['info','exec'],          tier:{early:'auto',growth:'auto',scale:'auto'},          rationale:'Nobody knows the customer better than the team talking to them daily. This is always venture-owned.' },
+  { id:'product',   name:'Product Iteration',        tests:['info','exec'],          tier:{early:'auto',growth:'auto',scale:'auto'},          rationale:'Iteration speed is the venture\'s primary advantage. Studio oversight creates drag without adding value.' },
+  { id:'team',      name:'Team Management',          tests:['exec'],                 tier:{early:'shared',growth:'auto',scale:'auto'},        rationale:'Early stage, the studio helps shape small teams. As ventures grow, they manage their people independently.' },
+  { id:'pivot',     name:'Pivot Decisions',          tests:['info','exec','impact'], tier:{early:'shared',growth:'auto',scale:'auto'},        rationale:'Early pivots need studio input because resources are shared. Mature ventures pivot within approved parameters independently.' }
+];
+
+const connections = [
+  ['entity','legal'],['entity','brand'],['entity','resource'],
+  ['resource','investor'],['resource','stagegate'],
+  ['investor','financial'],['investor','brand'],
+  ['norms','cadence'],['norms','knowledge'],['norms','legal'],
+  ['talent','vendor'],['talent','team'],
+  ['stagegate','cadence'],['stagegate','resource'],['stagegate','pivot'],
+  ['financial','cadence'],['financial','knowledge'],
+  ['execution','product'],['execution','customer'],['execution','team'],
+  ['customer','product'],['customer','pivot'],
+  ['knowledge','cadence'],
+  ['brand','investor'],
+  ['pivot','team']
+];
+
+const positions = {
+  entity:    { early:[155,140], growth:[155,140], scale:[160,250] },
+  brand:     { early:[205,225], growth:[205,225], scale:[455,125] },
+  resource:  { early:[128,310], growth:[128,310], scale:[132,350] },
+  investor:  { early:[215,385], growth:[215,385], scale:[565,175] },
+  legal:     { early:[142,465], growth:[142,465], scale:[172,450] },
+  norms:     { early:[198,545], growth:[198,545], scale:[495,255] },
+
+  talent:    { early:[450,138], growth:[450,160], scale:[858,465] },
+  vendor:    { early:[580,170], growth:[580,190], scale:[910,535] },
+  financial: { early:[655,248], growth:[655,268], scale:[625,300] },
+  stagegate: { early:[475,282], growth:[475,320], scale:[485,350] },
+  cadence:   { early:[595,335], growth:[595,378], scale:[580,410] },
+  knowledge: { early:[525,418], growth:[525,448], scale:[535,480] },
+  team:      { early:[645,438], growth:[885,425], scale:[965,345] },
+  pivot:     { early:[485,508], growth:[925,505], scale:[875,400] },
+
+  execution: { early:[895,205], growth:[875,185], scale:[865,140] },
+  customer:  { early:[965,315], growth:[965,275], scale:[955,215] },
+  product:   { early:[910,415], growth:[910,355], scale:[900,285] }
+};
+
+const tierColorKey = { central:'central', shared:'shared', auto:'autonomous' };
+const testColorVar = { info:'--test-info', exec:'--test-exec', impact:'--test-impact' };
+const testLabels = { info:'Best Information', exec:'Carries Execution', impact:'Affected if it Fails' };
+const tierLabels = { central:'Studio-Centralized', shared:'Shared / Platform', auto:'Venture-Autonomous' };
+const stageLabels = { early:'Early (2)', growth:'Growth (3-4)', scale:'Scale (5+)' };
+
+let currentStage = 'early';
+let currentTest = null;
+
+const svg = document.getElementById('network');
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k,v] of Object.entries(attrs||{})) e.setAttribute(k,v);
+  return e;
+}
+
+function radius(item) {
+  return item.tests.length === 3 ? 28 : item.tests.length === 2 ? 22 : 17;
+}
+
+function tierVar(item, stage) {
+  return `var(--${tierColorKey[item.tier[stage || currentStage]]})`;
+}
+
+function getTestColor(test) {
+  return getComputedStyle(document.documentElement).getPropertyValue(testColorVar[test]).trim();
+}
+
+function buildSVG() {
+  svg.innerHTML = '';
+
+  // Glow filters
+  const defs = el('defs');
+  ['central','shared','autonomous'].forEach(t => {
+    const f = el('filter', { id:`glow-${t}`, x:'-50%', y:'-50%', width:'200%', height:'200%' });
+    f.appendChild(el('feGaussianBlur', { stdDeviation:'5', result:'blur' }));
+    const m = el('feMerge');
+    m.appendChild(el('feMergeNode', { in:'blur' }));
+    m.appendChild(el('feMergeNode', { in:'SourceGraphic' }));
+    f.appendChild(m);
+    defs.appendChild(f);
+  });
+  svg.appendChild(defs);
+
+  // Zone ellipses
+  const zG = el('g');
+  [
+    { cx:170, cy:340, rx:135, ry:265, label:'Studio-Centralized' },
+    { cx:555, cy:330, rx:180, ry:275, label:'Shared / Platform' },
+    { cx:925, cy:340, rx:145, ry:265, label:'Venture-Autonomous' }
+  ].forEach(z => {
+    const ell = el('ellipse', { cx:z.cx, cy:z.cy, rx:z.rx, ry:z.ry, fill:'var(--conn-default)', opacity:'0.5' });
+    zG.appendChild(ell);
+    const lbl = el('text', { x:z.cx, y:52 });
+    lbl.classList.add('zone-label');
+    lbl.textContent = z.label;
+    zG.appendChild(lbl);
+  });
+  svg.appendChild(zG);
+
+  // Connection lines
+  const cG = el('g');
+  connections.forEach(([a,b]) => {
+    const p = el('path');
+    p.classList.add('conn-line');
+    p.dataset.from = a;
+    p.dataset.to = b;
+    p.style.stroke = 'var(--conn-default)';
+    cG.appendChild(p);
+  });
+  svg.appendChild(cG);
+
+  // Nodes
+  const nG = el('g');
+  items.forEach(item => {
+    const g = el('g');
+    g.classList.add('node-group');
+    g.dataset.id = item.id;
+
+    const r = radius(item);
+    const tv = tierVar(item);
+
+    const ring = el('circle', { r, stroke:tv, fill:tv });
+    ring.classList.add('node-ring');
+    ring.setAttribute('filter', `url(#glow-${tierColorKey[item.tier[currentStage]]})`);
+    g.appendChild(ring);
+
+    const dot = el('circle', { r:3.5, fill:tv, opacity:'0.55' });
+    dot.classList.add('node-dot');
+    g.appendChild(dot);
+
+    const label = el('text', { y: r + 15 });
+    label.classList.add('node-label');
+    label.textContent = item.name;
+    g.appendChild(label);
+
+    g.addEventListener('click', e => { e.stopPropagation(); showDetail(item); });
+    g.addEventListener('mouseenter', () => hoverNode(item.id));
+    g.addEventListener('mouseleave', () => unhoverNode());
+
+    nG.appendChild(g);
+  });
+  svg.appendChild(nG);
+
+  updatePositions(false);
+}
+
+function updatePositions(animate) {
+  items.forEach(item => {
+    const g = svg.querySelector(`.node-group[data-id="${item.id}"]`);
+    const [tx, ty] = positions[item.id][currentStage];
+    const tv = tierVar(item);
+    const tk = tierColorKey[item.tier[currentStage]];
+
+    if (animate) {
+      const cur = g.getAttribute('transform') || `translate(${tx},${ty})`;
+      const m = cur.match(/translate\(([\d.]+),\s*([\d.]+)\)/);
+      const fx = m ? +m[1] : tx, fy = m ? +m[2] : ty;
+      tweenNode(g, fx, fy, tx, ty, 650);
+    } else {
+      g.setAttribute('transform', `translate(${tx},${ty})`);
+    }
+
+    g.querySelector('.node-ring').setAttribute('stroke', tv);
+    g.querySelector('.node-ring').setAttribute('fill', tv);
+    g.querySelector('.node-ring').setAttribute('filter', `url(#glow-${tk})`);
+    g.querySelector('.node-dot').setAttribute('fill', tv);
+  });
+
+  if (animate) {
+    let n = 0;
+    const iv = setInterval(() => { updatePaths(); if (++n > 35) clearInterval(iv); }, 18);
+  } else {
+    updatePaths();
+  }
+}
+
+function updatePaths() {
+  connections.forEach(([aId, bId]) => {
+    const aG = svg.querySelector(`[data-id="${aId}"]`);
+    const bG = svg.querySelector(`[data-id="${bId}"]`);
+    const path = svg.querySelector(`.conn-line[data-from="${aId}"][data-to="${bId}"]`);
+    if (!aG || !bG || !path) return;
+
+    const aM = aG.getAttribute('transform').match(/translate\(([\d.]+),\s*([\d.]+)\)/);
+    const bM = bG.getAttribute('transform').match(/translate\(([\d.]+),\s*([\d.]+)\)/);
+    if (!aM || !bM) return;
+
+    const ax=+aM[1], ay=+aM[2], bx=+bM[1], by=+bM[2];
+    const mx=(ax+bx)/2, my=(ay+by)/2;
+    const dx=bx-ax, dy=by-ay;
+    const cx = mx - dy*0.12, cy = my + dx*0.12;
+    path.setAttribute('d', `M${ax},${ay} Q${cx},${cy} ${bx},${by}`);
+  });
+}
+
+function tweenNode(g, fx, fy, tx, ty, dur) {
+  const t0 = performance.now();
+  (function step(t) {
+    let p = Math.min(1, (t - t0) / dur);
+    p = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+    g.setAttribute('transform', `translate(${fx+(tx-fx)*p},${fy+(ty-fy)*p})`);
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+function hoverNode(id) {
+  if (currentTest) return;
+
+  const linked = new Set();
+  connections.forEach(([a,b]) => {
+    if (a===id) linked.add(b);
+    if (b===id) linked.add(a);
+  });
+
+  svg.querySelectorAll('.conn-line').forEach(p => {
+    const f=p.dataset.from, t=p.dataset.to;
+    if (f===id || t===id) {
+      p.classList.add('highlight'); p.classList.remove('dimmed');
+      const ai=items.find(i=>i.id===f), bi=items.find(i=>i.id===t);
+      const shared = ai.tests.filter(x=>bi.tests.includes(x));
+      p.style.stroke = shared.length ? getTestColor(shared[0]) : '';
+    } else {
+      p.classList.add('dimmed'); p.classList.remove('highlight');
+    }
+  });
+
+  svg.querySelectorAll('.node-group').forEach(g => {
+    const nid = g.dataset.id;
+    const dim = nid !== id && !linked.has(nid);
+    g.querySelector('.node-ring').classList.toggle('dimmed', dim);
+    g.querySelector('.node-label').classList.toggle('dimmed', dim);
+    g.querySelector('.node-dot').classList.toggle('dimmed', dim);
+  });
+}
+
+function unhoverNode() {
+  if (currentTest) { applyTestFilter(); return; }
+  svg.querySelectorAll('.conn-line').forEach(p => {
+    p.classList.remove('highlight','dimmed');
+    p.style.stroke = 'var(--conn-default)';
+  });
+  svg.querySelectorAll('.node-ring, .node-label, .node-dot').forEach(e => e.classList.remove('dimmed'));
+}
+
+function applyTestFilter() {
+  if (!currentTest) { unhoverNode(); return; }
+  const match = new Set(items.filter(i=>i.tests.includes(currentTest)).map(i=>i.id));
+  const col = getTestColor(currentTest);
+
+  svg.querySelectorAll('.node-group').forEach(g => {
+    const hit = match.has(g.dataset.id);
+    g.querySelector('.node-ring').classList.toggle('dimmed', !hit);
+    g.querySelector('.node-label').classList.toggle('dimmed', !hit);
+    g.querySelector('.node-dot').classList.toggle('dimmed', !hit);
+  });
+
+  svg.querySelectorAll('.conn-line').forEach(p => {
+    const hit = match.has(p.dataset.from) && match.has(p.dataset.to);
+    p.classList.toggle('highlight', hit);
+    p.classList.toggle('dimmed', !hit);
+    p.style.stroke = hit ? col : 'var(--conn-default)';
+  });
+}
+
+function showDetail(item) {
+  const panel = document.getElementById('detailPanel');
+  document.getElementById('detailTitle').textContent = item.name;
+  document.getElementById('detailRationale').textContent = item.rationale;
+
+  const stages = ['early','growth','scale'];
+  const tiers = stages.map(s=>item.tier[s]);
+  const changes = tiers[0]!==tiers[1] || tiers[1]!==tiers[2];
+
+  let html = item.tests.map(t => `<span class="pill pill-${t}">${testLabels[t]}</span>`).join('');
+  if (changes) {
+    html += stages.map(s => `<span class="pill pill-stage">${stageLabels[s]}: ${tierLabels[item.tier[s]]}</span>`).join('');
+  } else {
+    html += `<span class="pill pill-stage">Stays ${tierLabels[item.tier.early]} at all stages</span>`;
+  }
+
+  document.getElementById('detailMeta').innerHTML = html;
+  panel.classList.add('visible');
+}
+
+// Stage buttons
+document.querySelectorAll('.stage-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.stage-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentStage = btn.dataset.stage;
+    updatePositions(true);
+    if (currentTest) setTimeout(applyTestFilter, 700);
+  });
+});
+
+// Test buttons
+document.querySelectorAll('.test-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentTest === btn.dataset.test) {
+      currentTest = null;
+      btn.classList.remove('active');
+      unhoverNode();
+    } else {
+      currentTest = btn.dataset.test;
+      document.querySelectorAll('.test-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      applyTestFilter();
+    }
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.node-group') && !e.target.closest('.detail-panel')) {
+    document.getElementById('detailPanel').classList.remove('visible');
+  }
+});
+
+buildSVG();
+</script>
+
+</body>
+</html>
